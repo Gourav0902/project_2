@@ -52,29 +52,29 @@ def gui_window():
 try:
     # Create the window
     window = gui_window()
+    iteration_count = 0
 
     while True:
-        event, values = window.read()
+        event, values = window.read(timeout=2000)
 
         if event in (sg.WINDOW_CLOSED, "Exit"):
             window.close()
             break
         
+        c.addr = s.accept()
+        iteration_count +=1
+        data = collect_data()
+        data["Iteration"] = iteration_count
+        
+        jason_data = json.dumps(data)
+        s.sendall(jason_data.encode("utf-8"))
+        time.sleep(2)
         # Wait for a connection
-        c, addr = s.accept()
-        print(f'Got connection from {addr}')
-
-        # Collect system data
-        f_dict = collect_data()
-
-        # Convert the data to a JSON string
-        res = bytes(json.dumps(f_dict), 'utf-8')  # Send the data as bytes
-
-        # Send data to the client
-        c.send(res)
-
-        # Update the GUI status to "Connected" on the server
-        window['-STATUS-'].update("\u1F7E2 Connected", text_color='green')
+        
+        window['-STATUS-'].update("  Connected", text_color='green')
+        
+        if iteration_count >= 50:
+            break
 
 except KeyboardInterrupt:
     print("Good Bye")
