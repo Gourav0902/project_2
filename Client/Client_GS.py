@@ -2,6 +2,7 @@ import socket
 import sys
 import json, time
 import os, io
+import PySimpleGUI as sg
 
 def Hardware_check():
     try:
@@ -45,33 +46,54 @@ def get_Clock_frequency():
 def get_gpu_memory():
     Gm = os.popen('vcgencmd get_mem gpu').readline()
     return round(float(Gm.replace("gpu=", "").replace("M", "")), 1)
-try:
-    sock.connect((address, port))
-    for i in range(10):
-        jsonResult = {
-                        "Temperature": get_temp(),
-                        "Voltage": get_volt(),
-                        "Arm_Memory": get_Arm_memory(),
-                        "Arm_Clock": get_Clock_frequency(),
-                        "GPU_Memory": get_gpu_memory()
-                    }
+sg.theme('Light Brown 4')
 
-        #jsonResult = {"thing": [{"temp":"You're"}], "volts":v, "temp-core":core, "it =": i}
+layout = [
+    [sg.Text('Status '), sg.Text('Disconnected', key="-STATUS-")],  
+    [sg.Button("Exit")],
+    
+]
 
-        jsonResult = json.dumps(jsonResult)
-        jsonbyte = bytearray(jsonResult,"UTF-8")
-        print("this Json byte, sent ->", jsonbyte)
-        
+window = sg.Window("Client Monitoring", layout)
+while True:
+    try:
+        event, values = window.read(timeout=100)  # Timeout of 100ms to allow non-blocking GUI interaction
 
-        #print(v, " it = ",i, " ",core)
-        #sock. send(jsonResult)
-        sock.send(jsonbyte)
-        time.sleep(2)
+        if event == sg.WIN_CLOSED or event == 'Exit':
+            break
+        try:
+            sock.connect((address, port))
+           
+            for i in range(50):
+                jsonResult = {
+                                "Temperature": get_temp(),
+                                "Voltage": get_volt(),
+                                "Arm_Memory": get_Arm_memory(),
+                                "Arm_Clock": get_Clock_frequency(),
+                                "GPU_Memory": get_gpu_memory()
+                            }
 
-except socket.gaierror: # = short form for getaddrinfo()
+                #jsonResult = {"thing": [{"temp":"You're"}], "volts":v, "temp-core":core, "it =": i}
 
-    print('There an error resolving the host')
-    sock.close()
-finally:
-    print("Sorry lost connection with server")
-    exit()
+                jsonResult = json.dumps(jsonResult)
+                jsonbyte = bytearray(jsonResult,"UTF-8")
+                
+                
+
+                #print(v, " it = ",i, " ",core)
+                #sock. send(jsonResult)
+                sock.send(jsonbyte)
+                window['-STATUS-'].update("Connected")
+                time.sleep(2)
+
+        except socket.gaierror: # = short form for getaddrinfo()
+
+            print('There an error resolving the host')
+            sock.close()
+            
+    except KeyboardInterrupt:
+        print("Good Bye")
+        break
+    finally:
+        print("Good Bye")
+        exit()
