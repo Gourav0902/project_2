@@ -1,3 +1,10 @@
+'''Gouravjeet Singh (Fall 2024)
+# Student id- 100920691
+
+This program is strictly my own work. Any material
+beyond course learning materials that is taken from
+the Web or other sources is properly cited, giving.
+credit to the original author(s)'''
 import socket
 import sys
 import json, time
@@ -67,58 +74,66 @@ layout = [
 
 window = sg.Window("Client Monitoring", layout, finalize = True)
 def send_data():
+      
+        
         try:
             sock.connect((address, port))
             window['-STATUS-'].update("Connected")
             window['-LED0-'].update(CIRCLE)
             for i in range(50):
                 jsonResult = {
-                                "Temperature": get_temp(),
-                                "Voltage": get_volt(),
-                                "Arm_Memory": get_Arm_memory(),
-                                "Arm_Clock": get_Clock_frequency(),
-                                "GPU_Memory": get_gpu_memory(),
-                                "Throttling": get_throttling()
-                            }
+                                    "Iteration": i+1,
+                                    "Temperature": get_temp(),
+                                    "Voltage": get_volt(),
+                                    "Arm_Memory": get_Arm_memory(),
+                                    "Arm_Clock": get_Clock_frequency(),
+                                    "GPU_Memory": get_gpu_memory(),
+                                    "Throttling": get_throttling()
+                                }
 
-                #jsonResult = {"thing": [{"temp":"You're"}], "volts":v, "temp-core":core, "it =": i}
+                    #jsonResult = {"thing": [{"temp":"You're"}], "volts":v, "temp-core":core, "it =": i}
 
                 jsonResult = json.dumps(jsonResult)
                 jsonbyte = bytearray(jsonResult,"UTF-8")
-                
-                
+                try:  
+                    sock.send(jsonbyte)
+                    
+                    
 
-                #print(v, " it = ",i, " ",core)
-                #sock. send(jsonResult)
-                
-                sock.send(jsonbyte)
-                
+                except (socket.error, ConnectionRefusedError): # = short form for getaddrinfo()
+                    window['-STATUS-'].update("Disconnected")  # Update status to "Disconnected"
+                    window['-LED0-'].update(CIRCLE_OUTLINE)  # Change LED to disconnected color
+                    print("Connection lost")
+                    break
                 time.sleep(2)
-
-        except socket.gaierror: # = short form for getaddrinfo()
-
-            sg.popup('There an error resolving the host')
-            window['-STATUS-'].update("Disconnected")
+                
+                event, values = window.read(timeout=100)
+                
             
-        
-        finally:
-            sock.close()
-
-def main():
-    thread = threading.Thread(target=send_data, daemon=True)
-    thread.start()
-    while True:
-        try:
-            event, values = window.read(timeout=100)  # Timeout of 100ms to allow non-blocking GUI interaction
-
-            if event == sg.WIN_CLOSED or event == 'Exit':
-                break           
+                if event == sg.WIN_CLOSED or event == 'Exit':
+                    sg.popup("Have a Good day")
+                    break
+                elif event == '-STATUS-':               
+                    window['-STATUS-'].update(values['-STATUS-'])
+                elif event == '-LED0-':
+               
+                    window['-LED0-'].update(values['-LED0-'])
+                     
         except KeyboardInterrupt:
             sg.popup("Good Bye")
-            break
-        
-    sock.close()
-    window.close()
+            exit(0)
+            
+        except (socket.error, ConnectionRefusedError) as e:
+            print("connection error")
+        finally:
+            sock.close()
+def main():
+    send_data()  # Start the data transmission and GUI updates loop
+    window.close()  # Close the window after the loop ends
 
-if _name_ == "_main_":
+if __name__ == "__main__":
     main()
+
+
+
+
