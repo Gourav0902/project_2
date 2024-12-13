@@ -11,7 +11,7 @@ import json, time
 import os, io
 import threading
 import PySimpleGUI as sg
-
+# Function to check if the device is a Raspberry Pi
 def Hardware_check():
     try:
         with open("/proc/cpuinfo", "r") as cpuinfo:
@@ -21,18 +21,18 @@ def Hardware_check():
     except FileNotFoundError:
         pass
     return False
-
+# Check if the device is a Raspberry Pi, if not exit the program
 if not Hardware_check():
     sg.popup("Check Device")
     exit(0)
 
-
+# Create a socket object for client-server communication
 sock = socket. socket()
    
-
+# Set the port number and server address
 port = 5000
-#address = "192.168.10.121" # of server, so we can read the vcgencmd data
-address = "10.102.13.149"# to run on Pi with local server
+
+address = "10.102.13.149"
 
 # Functions to get various Pi parameters using vcgencmd
 def get_temp():
@@ -60,27 +60,36 @@ def get_throttling():
         return "NO Throttling"
     else:
         return "Throttling Detected"
+    
+# Set GUI theme    
 sg.theme('Light Brown 4')
+# Define LED symbols (used for status indication)
 CIRCLE = '\u26AB'
 CIRCLE_OUTLINE = '⚪'
+
+# Function to return a PySimpleGUI Text element representing an LED with a specific color
 def LED(color, key) :
     return sg.Text(CIRCLE_OUTLINE, text_color=color, key=key)
+
+# Define the layout for the GUI window
 layout = [
     [sg.Text('Status '),LED('Green', '-LED0-'), sg.Text('Disconnected', key="-STATUS-")],  
     [sg.Button("Exit")],
     
 ]
 
-
+# Create the window with the specified layout
 window = sg.Window("Client Monitoring", layout, finalize = True)
+# Function to handle data sending to the server
 def send_data():
       
         
         try:
-            sock.connect((address, port))
+            sock.connect((address, port)) # Connect to the server at the specified address and port
             window['-STATUS-'].update("Connected")
             window['-LED0-'].update(CIRCLE)
             for i in range(50):
+                # Create a dictionary with system data
                 jsonResult = {
                                     "Iteration": i+1,
                                     "Temperature": get_temp(),
@@ -91,10 +100,10 @@ def send_data():
                                     "Throttling": get_throttling()
                                 }
 
-                    #jsonResult = {"thing": [{"temp":"You're"}], "volts":v, "temp-core":core, "it =": i}
+                    
 
-                jsonResult = json.dumps(jsonResult)
-                jsonbyte = bytearray(jsonResult,"UTF-8")
+                jsonResult = json.dumps(jsonResult)# Convert the dictionary to a JSON string
+                jsonbyte = bytearray(jsonResult,"UTF-8")# Convert the JSON string to a bytearray for transmission
                 try:  
                     sock.send(jsonbyte)
                     
@@ -106,7 +115,7 @@ def send_data():
                     print("Connection lost")
                     break
                 time.sleep(2)
-                
+                # Read window events (such as button presses or window close)
                 event, values = window.read(timeout=100)
                 
             
@@ -127,9 +136,10 @@ def send_data():
             print("connection error")
         finally:
             sock.close()
+# Main function to initiate the process            
 def main():
-    send_data()  # Start the data transmission and GUI updates loop
-    window.close()  # Close the window after the loop ends
+    send_data()  
+    window.close()  
 
 if __name__ == "__main__":
     main()
